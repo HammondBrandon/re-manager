@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -64,32 +64,41 @@ export function ContactForm({ open, onClose, contact }: Props) {
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<FormValues>({
       resolver: zodResolver(schema),
-      defaultValues: contact
-        ? {
-            type: contact.type,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            email: contact.email ?? '',
-            phone: contact.phone ?? '',
-            second_email: contact.second_email ?? '',
-            second_phone: contact.second_phone ?? '',
-            company: contact.company ?? '',
-            client_rating: contact.client_rating ?? null,
-            source: contact.source ?? '',
-            address: contact.address ?? '',
-            city: contact.city ?? '',
-            state: contact.state ?? '',
-            zip: contact.zip ?? '',
-            birthday: contact.birthday ?? '',
-            anniversary: contact.anniversary ?? '',
-            spouse_first_name: contact.spouse_first_name ?? '',
-            spouse_last_name: contact.spouse_last_name ?? '',
-            spouse_email: contact.spouse_email ?? '',
-            spouse_phone: contact.spouse_phone ?? '',
-            notes: contact.notes ?? '',
-          }
-        : { type: 'client', client_rating: null },
+      defaultValues: { type: 'client', client_rating: null },
     })
+
+  // Reset form with contact data every time the dialog opens
+  useEffect(() => {
+    if (open) {
+      reset(
+        contact
+          ? {
+              type: contact.type,
+              first_name: contact.first_name,
+              last_name: contact.last_name,
+              email: contact.email ?? '',
+              phone: contact.phone ?? '',
+              second_email: (contact as any).second_email ?? '',
+              second_phone: (contact as any).second_phone ?? '',
+              company: contact.company ?? '',
+              client_rating: (contact as any).client_rating ?? null,
+              source: (contact as any).source ?? '',
+              address: (contact as any).address ?? '',
+              city: (contact as any).city ?? '',
+              state: (contact as any).state ?? '',
+              zip: (contact as any).zip ?? '',
+              birthday: (contact as any).birthday ?? '',
+              anniversary: (contact as any).anniversary ?? '',
+              spouse_first_name: (contact as any).spouse_first_name ?? '',
+              spouse_last_name: (contact as any).spouse_last_name ?? '',
+              spouse_email: (contact as any).spouse_email ?? '',
+              spouse_phone: (contact as any).spouse_phone ?? '',
+              notes: contact.notes ?? '',
+            }
+          : { type: 'client', client_rating: null }
+      )
+    }
+  }, [open, contact, reset])
 
   async function onSubmit(values: FormValues) {
     setLoading(true)
@@ -127,7 +136,7 @@ export function ContactForm({ open, onClose, contact }: Props) {
               <div className="space-y-1.5">
                 <Label>Type</Label>
                 <Select
-                  defaultValue={watch('type')}
+                  value={watch('type')}
                   onValueChange={(v) => v && setValue('type', v as FormValues['type'])}
                 >
                   <SelectTrigger>
@@ -145,7 +154,7 @@ export function ContactForm({ open, onClose, contact }: Props) {
                 <div className="space-y-1.5">
                   <Label>Rating</Label>
                   <Select
-                    defaultValue={watch('client_rating') ?? ''}
+                    value={watch('client_rating') ?? ''}
                     onValueChange={(v) => setValue('client_rating', (v || null) as FormValues['client_rating'])}
                   >
                     <SelectTrigger>
