@@ -3,7 +3,9 @@ import Link from 'next/link'
 import { getTransaction } from '@/lib/actions/transactions'
 import { getFiles } from '@/lib/actions/files'
 import { getEmailLogs } from '@/lib/actions/emails'
+import { getContacts } from '@/lib/actions/contacts'
 import { StageManager } from '@/components/transactions/StageManager'
+import { TransactionContacts } from '@/components/transactions/TransactionContacts'
 import { FileList } from '@/components/files/FileList'
 import { EmailComposer } from '@/components/emails/EmailComposer'
 import { EmailLog } from '@/components/emails/EmailLog'
@@ -38,9 +40,10 @@ export default async function TransactionDetailPage({ params }: PageProps) {
     .eq('id', user?.id)
     .single()
 
-  const [files, emailLogs] = await Promise.all([
+  const [files, emailLogs, allContacts] = await Promise.all([
     getFiles(id),
     getEmailLogs(id),
+    getContacts(),
   ])
 
   const isBuyer = transaction.type === 'buyer'
@@ -212,31 +215,12 @@ export default async function TransactionDetailPage({ params }: PageProps) {
       )}
 
       {/* Contacts */}
-      {transaction.transaction_contacts?.length > 0 && (
-        <div className="bg-white rounded-lg border p-5 mb-6">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Associated Contacts</h2>
-          <div className="space-y-2">
-            {transaction.transaction_contacts.map((tc: {
-              id: string
-              role: string
-              contact: { first_name: string; last_name: string; email: string | null; phone: string | null }
-            }) => (
-              <div key={tc.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-medium">
-                    {tc.contact.first_name} {tc.contact.last_name}
-                  </span>
-                  <span className="ml-2 text-gray-400 capitalize">{tc.role.replace('_', ' ')}</span>
-                </div>
-                <div className="text-gray-500 flex gap-4">
-                  {tc.contact.email && <span>{tc.contact.email}</span>}
-                  {tc.contact.phone && <span>{tc.contact.phone}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <TransactionContacts
+        transactionId={transaction.id}
+        transactionType={transaction.type}
+        transactionContacts={transaction.transaction_contacts ?? []}
+        allContacts={allContacts ?? []}
+      />
 
       {/* Files */}
       <div className="mb-6">

@@ -219,6 +219,32 @@ export async function deleteTransaction(id: string) {
   revalidatePath('/transactions')
 }
 
+export async function addTransactionContact(
+  transactionId: string,
+  contactId: string,
+  role: string
+) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('transaction_contacts')
+    .insert({ transaction_id: transactionId, contact_id: contactId, role })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/transactions/${transactionId}`)
+}
+
+export async function removeTransactionContact(
+  transactionContactId: string,
+  transactionId: string
+) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('transaction_contacts')
+    .delete()
+    .eq('id', transactionContactId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/transactions/${transactionId}`)
+}
+
 export async function getTeamMembers() {
   const supabase = await createClient()
   const { data, error } = await supabase
