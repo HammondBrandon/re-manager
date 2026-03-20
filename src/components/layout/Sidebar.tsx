@@ -12,6 +12,7 @@ import {
   LogOut,
   Upload,
   Home,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/crm', label: 'CRM', icon: Users },
   { href: '/files', label: 'Files', icon: FolderOpen },
   { href: '/social', label: 'Social Media', icon: Instagram },
+  { href: '/team', label: 'Team', icon: UserCog },
 ]
 
 export function Sidebar() {
