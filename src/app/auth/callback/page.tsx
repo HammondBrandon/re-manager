@@ -13,10 +13,9 @@ function CallbackHandler() {
 
   useEffect(() => {
     const supabase = createClient()
-    let done = false
 
     async function handle() {
-      // PKCE flow: ?code=xxx
+      // ── PKCE flow: ?code=xxx ──────────────────────────────────────────
       const code = searchParams.get('code')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -24,34 +23,36 @@ function CallbackHandler() {
         return
       }
 
-      // Implicit / hash flow: Supabase JS client auto-reads window.location.hash
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        router.replace('/update-password')
+      // ── Implicit / hash flow: #access_token=xxx ───────────────────────
+      // createBrowserClient does NOT auto-process hash tokens, so we do it
+      // manually by parsing window.location.hash and calling setSession().
+      const hash = window.location.hash.substring(1) // strip leading #
+      const params = new URLSearchParams(hash)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        router.replace(error ? '/login?error=invalid_invite' : '/update-password')
         return
       }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          if (done) return
-          done = true
-          subscription.unsubscribe()
-          router.replace(session ? '/update-password' : '/login?error=invalid_invite')
-        }
-      )
-
-      setTimeout(() => {
-        if (done) return
-        done = true
-        subscription.unsubscribe()
-        router.replace('/login?error=invalid_invite')
-      }, 5000)
+      // Nothing we can use — bad or missing token
+      router.replace('/login?error=invalid_invite')
     }
 
     handle()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+  return (
+    <div className="flex flex-col items-center gap-3 text-gray-500">
+      <Loader2 className="h-6 w-6 animate-spin" />
+      <p className="text-sm">Verifying your invite…</p>
+    </div>
+  )
 }
 
 export default function AuthCallbackPage() {
