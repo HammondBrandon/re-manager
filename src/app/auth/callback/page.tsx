@@ -2,56 +2,41 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
-/**
- * Handles both Supabase auth flows:
- *  - PKCE  → ?code=xxx in query string  (server can read, but we handle client-side too)
- *  - Implicit → #access_token=xxx in hash (server CANNOT read — must be client-side)
- */
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   useEffect(() => {
     const supabase = createClient()
+    let done = false
 
     async function handle() {
-      // PKCE flow: exchange the code for a session
+      // PKCE flow: ?code=xxx
       const code = searchParams.get('code')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (error) {
-          router.replace('/login?error=invalid_invite')
-          return
-        }
-        router.replace('/update-password')
+        router.replace(error ? '/login?error=invalid_invite' : '/update-password')
         return
       }
 
-      // Implicit / hash flow: Supabase JS client auto-reads the hash and
-      // fires onAuthStateChange. getSession() picks it up immediately.
+      // Implicit / hash flow: Supabase JS client auto-reads window.location.hash
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         router.replace('/update-password')
         return
       }
 
-      // Wait up to 5 s for the hash to be processed
-      let done = false
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (_event, session) => {
           if (done) return
           done = true
           subscription.unsubscribe()
-          if (session) {
-            router.replace('/update-password')
-          } else {
-            router.replace('/login?error=invalid_invite')
-          }
+          router.replace(session ? '/update-password' : '/login?error=invalid_invite')
         }
       )
 
@@ -66,9 +51,15 @@ export default function AuthCallbackPage() {
     handle()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  return <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+}
+
+export default function AuthCallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-50">
-      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      <Suspense fallback={<Loader2 className="h-6 w-6 animate-spin text-gray-400" />}>
+        <CallbackHandler />
+      </Suspense>
     </div>
   )
 }
