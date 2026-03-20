@@ -2,20 +2,74 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Home } from 'lucide-react'
+import { Home, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+
+type Status = 'loading' | 'ready' | 'error'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [status, setStatus] = useState<Status>('loading')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    async function bootstrap() {
+      // PKCE flow: Supabase puts ?code=xxx in the URL
+      const code = searchParams.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          setStatus('error')
+          return
+        }
+        setStatus('ready')
+        return
+      }
+
+      // Implicit / hash flow: Supabase puts #access_token=xxx in the URL.
+      // The Supabase JS client detects and sets the session automatically —
+      // wait for the AUTH_STATE_CHANGE event to confirm it.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setStatus('ready')
+        return
+      }
+
+      // Listen for the session to arrive from the hash fragment
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (session) {
+            setStatus('ready')
+            subscription.unsubscribe()
+          }
+        }
+      )
+
+      // If nothing arrives in 5s, the link is invalid or expired
+      const timeout = setTimeout(() => {
+        subscription.unsubscribe()
+        setStatus('error')
+      }, 5000)
+
+      return () => {
+        clearTimeout(timeout)
+        subscription.unsubscribe()
+      }
+    }
+
+    bootstrap()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -28,13 +82,13 @@ export default function UpdatePasswordPage() {
       return
     }
 
-    setLoading(true)
+    setSubmitting(true)
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
       toast.error(error.message)
-      setLoading(false)
+      setSubmitting(false)
       return
     }
 
@@ -60,36 +114,58 @@ export default function UpdatePasswordPage() {
           </div>
         </div>
 
-        {/* Form */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="password">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="confirm">Confirm Password</Label>
-              <Input
-                id="confirm"
-                type="password"
-                placeholder="Repeat your password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Setting password…' : 'Set Password & Sign In'}
+        {/* States */}
+        {status === 'loading' && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="rounded-xl border bg-white p-6 shadow-sm text-center space-y-3">
+            <p className="text-sm text-red-600 font-medium">
+              This invite link is invalid or has expired.
+            </p>
+            <p className="text-xs text-gray-500">
+              Ask your admin to send a new invitation.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => router.push('/login')}>
+              Back to Login
             </Button>
-          </form>
-        </div>
+          </div>
+        )}
+
+        {status === 'ready' && (
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="password">New Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm">Confirm Password</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  placeholder="Repeat your password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? 'Setting password…' : 'Set Password & Sign In'}
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   )

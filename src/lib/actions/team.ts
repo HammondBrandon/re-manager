@@ -57,7 +57,7 @@ export async function inviteTeamMember(data: {
       role: data.role,
       sub_role: data.sub_role ?? null,
     },
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/update-password`,
   })
 
   if (error) throw new Error(error.message)
