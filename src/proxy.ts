@@ -31,14 +31,19 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Redirect unauthenticated users to login
-  if (!user && pathname !== '/login') {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Allow auth callback and password setup through without a session
+  const publicPaths = ['/login', '/auth/callback', '/update-password']
+  if (publicPaths.some(p => pathname.startsWith(p))) {
+    // Still redirect authenticated users away from login
+    if (user && pathname === '/login') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return supabaseResponse
   }
 
-  // Redirect authenticated users away from login
-  if (user && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // Redirect unauthenticated users to login
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return supabaseResponse
