@@ -19,8 +19,8 @@ type ContactPayload = {
   city?: string
   state?: string
   zip?: string
-  birthday?: string
-  anniversary?: string
+  birthday?: string | null
+  anniversary?: string | null
   spouse_first_name?: string
   spouse_last_name?: string
   spouse_email?: string
