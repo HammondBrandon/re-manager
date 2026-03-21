@@ -26,15 +26,17 @@ interface RoleSlot {
 }
 
 const SELLER_SLOTS: RoleSlot[] = [
-  { role: 'seller',           label: 'Seller',           allowedTypes: ['client'] },
-  { role: 'buyers_agent',     label: "Buyer's Agent",    allowedTypes: ['realtor'] },
-  { role: 'closing_attorney', label: 'Closing Attorney', allowedTypes: ['realtor', 'contractor', 'lender', 'client'] },
+  { role: 'seller',           label: 'Seller',             allowedTypes: ['client'] },
+  { role: 'buyers_agent',     label: "Buyer's Agent",      allowedTypes: ['realtor'] },
+  { role: 'co_listing_agent', label: 'Co-Listing Agent',   allowedTypes: ['realtor'] },
+  { role: 'closing_attorney', label: 'Closing Attorney',   allowedTypes: ['realtor', 'contractor', 'lender', 'client'] },
 ]
 
 const BUYER_SLOTS: RoleSlot[] = [
-  { role: 'buyer',            label: 'Buyer',            allowedTypes: ['client'] },
-  { role: 'lender',           label: 'Lender',           allowedTypes: ['lender'] },
-  { role: 'closing_attorney', label: 'Closing Attorney', allowedTypes: ['realtor', 'contractor', 'lender', 'client'] },
+  { role: 'buyer',            label: 'Buyer',              allowedTypes: ['client'] },
+  { role: 'lender',           label: 'Lender',             allowedTypes: ['lender'] },
+  { role: 'listing_agent',    label: "Seller's Agent",     allowedTypes: ['realtor'] },
+  { role: 'closing_attorney', label: 'Closing Attorney',   allowedTypes: ['realtor', 'contractor', 'lender', 'client'] },
 ]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
