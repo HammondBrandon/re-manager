@@ -42,12 +42,21 @@ export async function getContacts(type?: ContactType) {
   return data
 }
 
+// Convert empty strings to null for date fields so Postgres doesn't reject them
+function sanitizeDates(payload: ContactPayload): ContactPayload {
+  return {
+    ...payload,
+    birthday:    payload.birthday    || null,
+    anniversary: payload.anniversary || null,
+  }
+}
+
 export async function createContact(formData: ContactPayload) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { error } = await supabase.from('contacts').insert({
-    ...formData,
+    ...sanitizeDates(formData),
     created_by: user?.id,
   })
 
@@ -57,7 +66,7 @@ export async function createContact(formData: ContactPayload) {
 
 export async function updateContact(id: string, formData: ContactPayload) {
   const supabase = await createClient()
-  const { error } = await supabase.from('contacts').update(formData).eq('id', id)
+  const { error } = await supabase.from('contacts').update(sanitizeDates(formData)).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/crm')
 }
